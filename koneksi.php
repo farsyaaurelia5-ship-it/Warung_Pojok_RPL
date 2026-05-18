@@ -1,7 +1,7 @@
 <?php
 $host     = 'localhost';
 $user     = 'root';
-$password = '';          
+$password = '';
 $dbname   = 'warung_pojok';
 
 $conn = new mysqli($host, $user, $password, $dbname);

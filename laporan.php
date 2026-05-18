@@ -2,26 +2,26 @@
 include 'koneksi.php';
 $query_bulanan = "
     SELECT
-        YEAR(order_date) AS tahun,
-        MONTHNAME(order_date) AS bulan,
-        SUM(total) AS total_pemasukan
+        YEAR(tanggal_pesanan) AS tahun,
+        MONTHNAME(tanggal_pesanan) AS bulan,
+        SUM(total_harga) AS total_pemasukan
     FROM
-        orders
+        pesanan WHERE status_pesanan = 'Selesai'
     GROUP BY
-        tahun, bulan, MONTH(order_date)
+        tahun, bulan, MONTH(tanggal_pesanan)
     ORDER BY
-        tahun DESC, MONTH(order_date) DESC
+        tahun DESC, MONTH(tanggal_pesanan) DESC
 ";
 $result_bulanan = mysqli_query($conn, $query_bulanan);
 
 $query_tahunan = "
     SELECT
-        YEAR(order_date) AS tahun,
-        SUM(total) AS total_pemasukan
+        YEAR(tanggal_pesanan) AS tahun,
+        SUM(total_harga) AS total_pemasukan
     FROM
-        orders
+        pesanan WHERE status_pesanan = 'Selesai'
     GROUP BY
-        YEAR(order_date)
+        YEAR(tanggal_pesanan)
     ORDER BY
         tahun DESC
 ";
@@ -43,7 +43,6 @@ $result_tahunan = mysqli_query($conn, $query_tahunan);
 
 <div class="container">
     <h1 class="main-title"><span></span>Laporan Pemasukan</h1>
-
     <div class="card">
         <div class="card-header monthly">
             Laporan Pemasukan Bulanan
@@ -107,7 +106,7 @@ $result_tahunan = mysqli_query($conn, $query_tahunan);
     </div>
     
     <div class="text-center mt-4">
-        <a href="admin_dashboard.php" class="btn btn-back">Kembali ke Dashboard</a>
+        <a href="owner_dashboard.php" class="btn btn-back">Kembali ke Dashboard</a>
     </div>
 </div>
 

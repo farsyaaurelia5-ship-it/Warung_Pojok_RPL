@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'koneksi.php';
+include 'koneksi.php';
 
 // Cek jika keranjang kosong
 if (!isset($_SESSION['keranjang']) || count($_SESSION['keranjang']) === 0) {
@@ -8,61 +8,68 @@ if (!isset($_SESSION['keranjang']) || count($_SESSION['keranjang']) === 0) {
     exit;
 }
 
-// Ambil data form
+// Ambil data dari form
 $nama_pelanggan = $_POST['nama_pelanggan'];
-$nomor_meja = $_POST['nomor_meja'];
-$catatan = isset($_POST['catatan']) ? $_POST['catatan'] : '';
+// PENTING: Karena di keranjang.php valuenya adalah ID, maka ini adalah id_meja
+$id_meja = $_POST['nomor_meja']; 
 $metode_pembayaran = isset($_POST['metode_pembayaran']) ? $_POST['metode_pembayaran'] : 'Tunai';
 
-// Hitung total
-$total = 0;
+// 1. Hitung total harga ulang (biar aman dari manipulasi)
+$total_harga = 0;
 foreach ($_SESSION['keranjang'] as $item) {
     $harga = isset($item['harga']) ? $item['harga'] : 0;
     $jumlah = isset($item['jumlah']) ? (int)$item['jumlah'] : 1;
-    $total += $harga * $jumlah;
+    $total_harga += $harga * $jumlah;
 }
 
-// Generate kode pesanan unik
-$kode_pesanan = 'WP' . time();
+// 2. Simpan Data Pelanggan
+$stmt_pelanggan = $conn->prepare("INSERT INTO pelanggan (nama) VALUES (?)");
+$stmt_pelanggan->bind_param("s", $nama_pelanggan);
+$stmt_pelanggan->execute();
+$id_pelanggan = $stmt_pelanggan->insert_id;
 
-// Simpan ke tabel orders 
-$stmt = $conn->prepare("INSERT INTO orders (kode_pesanan, nama_pelanggan, total, status, metode_pembayaran, nomor_meja) VALUES (?, ?, ?, 'pending', ?, ?)");
-$stmt->bind_param("sssss", $kode_pesanan, $nama_pelanggan, $total, $metode_pembayaran, $nomor_meja);
-$stmt->execute();
+// 3. Simpan ke Tabel PESANAN
+// Status default 'Pending' (artinya Belum Bayar -> Tombol Kuning di Kasir)
+$status_pesanan = 'Pending';
+// Kita asumsikan kolom status_pembayaran belum ada, jadi pakai status_pesanan saja
+$stmt_pesanan = $conn->prepare("INSERT INTO pesanan (tanggal_pesanan, total_harga, status_pesanan, id_pelanggan, id_meja, id_kasir) VALUES (NOW(), ?, ?, ?, ?, NULL)");
 
-if ($stmt->error) {
-    echo "Gagal menyimpan pesanan: " . $stmt->error;
-    exit;
-}
+// Note: id_kasir NULL dulu karena belum dilayani kasir
+$stmt_pesanan->bind_param("dsii", $total_harga, $status_pesanan, $id_pelanggan, $id_meja);
 
-$order_id = $stmt->insert_id;
+if ($stmt_pesanan->execute()) {
+    $id_pesanan_baru = $stmt_pesanan->insert_id;
 
-// Simpan item ke order_items dan update stok menu
-foreach ($_SESSION['keranjang'] as $item) {
-    $menu_id = (int)$item['id'];  
-    $nama_menu = isset($item['nama_menu']) ? $item['nama_menu'] : '';
-    $harga = isset($item['harga']) ? (float)$item['harga'] : 0;
-    $jumlah = isset($item['jumlah']) ? (int)$item['jumlah'] : 1;
-    $subtotal = $harga * $jumlah;
-
-    // Simpan item (pastikan menu_id valid)
-    $stmt_item = $conn->prepare("INSERT INTO order_items (order_id, menu_id, nama_menu, harga, quantity, subtotal) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt_item->bind_param("iisdis", $order_id, $menu_id, $nama_menu, $harga, $jumlah, $subtotal);
-    $stmt_item->execute();
-
-    if ($stmt_item->error) {
-        echo "Gagal menyimpan item: " . $stmt_item->error;
-        exit;
+    // 4. Simpan DETAIL PESANAN
+    $stmt_detail = $conn->prepare("INSERT INTO detail_pesanan (id_pesanan, id_menu, jumlah_item, harga_satuan, subtotal_item) VALUES (?, ?, ?, ?, ?)");
+    
+    foreach ($_SESSION['keranjang'] as $item) {
+        $id_menu = (int)$item['menu_id'];
+        $harga_satuan = (float)$item['harga'];
+        $jumlah = (int)$item['jumlah'];
+        $subtotal = $harga_satuan * $jumlah;
+        
+        $stmt_detail->bind_param("iiidd", $id_pesanan_baru, $id_menu, $jumlah, $harga_satuan, $subtotal);
+        $stmt_detail->execute();
     }
 
-    // Kurangi stok menu jika field tersedia bertipe INT
-    $conn->query("UPDATE menu SET tersedia = GREATEST(tersedia - $jumlah, 0) WHERE id = $menu_id");
+    // ==========================================================
+    // 5. UPDATE STATUS MEJA (BAGIAN PALING PENTING!)
+    // ==========================================================
+    // Ini yang bikin meja jadi "Terisi" dan nyambung ke pesanan ini
+    $stmt_meja = $conn->prepare("UPDATE meja SET status_meja = 'Terisi', id_pesanan_aktif = ? WHERE id_meja = ?");
+    $stmt_meja->bind_param("ii", $id_pesanan_baru, $id_meja);
+    $stmt_meja->execute();
+
+    // 6. Bersihkan Keranjang & Redirect
+    unset($_SESSION['keranjang']);
+    
+    // Redirect ke Nota atau Sukses
+    echo "<script>
+            alert('Pesanan Berhasil! Silakan lakukan pembayaran di kasir.'); 
+            window.location='nota.php?id_pesanan=$id_pesanan_baru';
+          </script>";
+} else {
+    echo "Error: " . $conn->error;
 }
-
-// Bersihkan keranjang
-unset($_SESSION['keranjang']);
-
-// Redirect ke nota
-header("Location: nota.php?order_id=$order_id");
-exit;
 ?>

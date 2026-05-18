@@ -14,7 +14,7 @@ if (!isset($_GET['id'])) {
 }
 
 $id = (int)$_GET['id'];
-$result = mysqli_query($conn, "SELECT * FROM menu WHERE id = $id");
+$result = mysqli_query($conn, "SELECT * FROM menu WHERE id_menu = $id");
 $menu = mysqli_fetch_assoc($result);
 
 // Jika menu dengan ID tersebut tidak ada
@@ -30,8 +30,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $harga = $_POST['harga'];
     $kategori = $_POST['kategori'];
     $deskripsi = $_POST['deskripsi'];
-    $tersedia = isset($_POST['tersedia']) ? 1 : 0;
-    $stok = $_POST['stok'];
+    $status = isset($_POST['status']) ? $_POST['status'] : 'Habis';
 
     // --- LOGIKA UPLOAD FOTO BARU ---
     // DIUBAH: Gunakan nama kolom 'gambar' dari database, bukan 'gambar_menu'
@@ -68,9 +67,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Update data ke database
     // DIUBAH: Pastikan nama kolom di query adalah 'gambar'
-    $stmt = $conn->prepare("UPDATE menu SET nama_menu=?, harga=?, kategori=?, deskripsi=?, gambar=?, tersedia=?, stok=? WHERE id=?");
+    $stmt = $conn->prepare("UPDATE menu SET nama_menu=?, harga=?, kategori=?, deskripsi=?, gambar=?, status=? WHERE id_menu=?");
     // DIUBAH: Masukkan variabel '$gambar' yang sudah benar
-    $stmt->bind_param("sdsssiii", $nama_menu, $harga, $kategori, $deskripsi, $gambar, $tersedia, $stok, $id);
+    $stmt->bind_param("sdssssi", $nama_menu, $harga, $kategori, $deskripsi, $gambar, $status, $id);
     
     if ($stmt->execute()) {
         header("Location: kelola_menu.php");
@@ -124,12 +123,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <small class="form-text text-muted">Kosongkan jika tidak ingin mengubah foto.</small>
         </div>
         <div class="mb-3">
-            <label for="stok" class="form-label">Stok</label>
-            <input type="number" class="form-control" name="stok" id="stok" value="<?= htmlspecialchars($menu['stok']) ?>" required>
-        </div>
-        <div class="form-check mb-3">
-            <input class="form-check-input" type="checkbox" name="tersedia" id="tersedia" <?= $menu['tersedia'] ? 'checked' : '' ?>>
-            <label class="form-check-label" for="tersedia">Tersedia</label>
+            <label for="status" class="form-label">Status</label>
+            <select class="form-select" name="status" id="status" required>
+                <option value="Tersedia" <?= $menu['status'] == 'Tersedia' ? 'selected' : '' ?>>Tersedia</option>
+                <option value="Habis" <?= $menu['status'] == 'Habis' ? 'selected' : '' ?>>Habis</option>
+            </select>
         </div>
         <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
         <a href="kelola_menu.php" class="btn btn-secondary">Batal</a>

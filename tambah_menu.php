@@ -8,8 +8,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $harga = $_POST['harga'];
     $kategori = $_POST['kategori'];
     $deskripsi = $_POST['deskripsi'];
-    $tersedia = isset($_POST['tersedia']) ? 1 : 0;
-    $stok = $_POST['stok'];
+    $status = isset($_POST['status']) ? $_POST['status'] : 'Habis';
     $gambar = ''; // Default nama gambar kosong
 
     // Proses upload gambar
@@ -30,9 +29,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     // Menambahkan kolom 'gambar' ke dalam query INSERT
-    $stmt = $conn->prepare("INSERT INTO menu (nama_menu, harga, kategori, deskripsi, tersedia, stok, gambar) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt = $conn->prepare("INSERT INTO menu (nama_menu, harga, kategori, deskripsi, status, gambar) VALUES (?, ?, ?, ?, ?, ?)");
     // Menyesuaikan tipe data di bind_param (s=string, d=double, i=integer)
-    $stmt->bind_param("sdssiis", $nama_menu, $harga, $kategori, $deskripsi, $tersedia, $stok, $gambar);
+    $stmt->bind_param("sdssss", $nama_menu, $harga, $kategori, $deskripsi, $status, $gambar);
     
     if ($stmt->execute()) {
         header("Location: kelola_menu.php");
@@ -79,12 +78,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <input type="file" class="form-control" name="gambar" id="gambar" accept="image/*" required>
         </div>
         <div class="mb-3">
-            <label for="stok" class="form-label">Stok</label>
-            <input type="number" class="form-control" name="stok" id="stok" required>
-        </div>
-        <div class="form-check mb-3">
-            <input class="form-check-input" type="checkbox" name="tersedia" id="tersedia" checked>
-            <label class="form-check-label" for="tersedia">Tersedia</label>
+            <label for="status" class="form-label">Status</label>
+            <select class="form-select" name="status" id="status" required>
+                <option value="Tersedia">Tersedia</option>
+                <option value="Habis">Habis</option>
+            </select>
         </div>
         <button type="submit" class="btn btn-success">Tambah Menu</button>
         <a href="kelola_menu.php" class="btn btn-secondary">Batal</a>

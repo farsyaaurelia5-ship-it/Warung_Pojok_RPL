@@ -3,21 +3,23 @@ session_start();
 include 'koneksi.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $username = mysqli_real_escape_string($conn, $_POST['username']);
+    $email = $_POST['email'];
     $password = $_POST['password'];
 
-    $query = "SELECT * FROM admin WHERE username = '$username' AND password = '$password'";
-    $result = mysqli_query($conn, $query);
-    $admin = mysqli_fetch_assoc($result);
+    // Menggunakan prepared statement untuk keamanan
+    $stmt = $conn->prepare("SELECT * FROM admin_owner WHERE email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $owner = $result->fetch_assoc();
 
-    if ($admin) {
-        $_SESSION['role'] = 'admin';
-        $_SESSION['nama'] = $admin['nama']; 
-        $_SESSION['admin_id'] = $admin['id'];
-        header("Location: admin_dashboard.php");
-        exit;
+if ($owner && password_verify($password, $owner['password'])) {
+        $_SESSION['role'] = 'owner';
+        $_SESSION['nama'] = $owner['nama'];
+        $_SESSION['owner_id'] = $owner['id_owner'];
+        header("Location: owner_dashboard.php");
     } else {
-        $error = "Username atau password salah!";
+        $error = "Email atau password salah!";
     }
 }
 ?>
@@ -27,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Warung Pojok - Admin Login</title>
+    <title>Warung Pojok - Owner Login</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -38,11 +40,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     <div class="jumbotron jumbotron-fluid text-center mb-4">
         <div class="container">
-            <h1 class="display-4 font-weight-bold">LOGIN <span>ADMIN</span></h1>
-            <hr class="my-4 bg-light" />
+            <h1 class="display-4 font-weight-bold">LOGIN <span>OWNER</span></h1>
+            <hr class="my-4 bg-light" /> 
             <p class="lead font-weight-bold">
                 Masukkan username dan password Anda<br />
-                untuk mengakses panel admin
+                untuk mengakses panel owner
             </p>
         </div>
     </div>
@@ -50,12 +52,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     <div class="container">
         <div class="login-container">
-            <h3 class="mb-4 text-center"><i class="fas fa-user-shield mr-2"></i> Admin Login</h3>
+            <h3 class="mb-4 text-center"><i class="fas fa-user-shield mr-2"></i> Owner Login</h3>
             
             <form action="" method="POST">
                 <div class="mb-3">
-                    <label for="username" class="form-label">Username</label>
-                    <input type="text" name="username" class="form-control" required>
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" required>
                 </div>
                 <div class="mb-3">
                     <label for="password" class="form-label">Password</label>
@@ -65,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </form>
             
             <div class="text-center mt-3">
-                <p>Belum punya akun? <a href="register.php" class="register-link">Daftar sebagai admin</a></p>
+                <p>Belum punya akun? <a href="register.php" class="register-link">Daftar sebagai owner</a></p>
             </div>
         </div>
     </div>

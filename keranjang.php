@@ -1,6 +1,6 @@
 <?php
 session_start();
-$conn = new mysqli("localhost", "root", "", "warung_pojok");
+include 'koneksi.php'; // Pastikan file koneksi.php benar
 
 // Hapus salah satu item keranjang berdasarkan indeks
 if (isset($_GET['hapus'])) {
@@ -37,10 +37,8 @@ $total = 0;
 <nav class="navbar navbar-expand-lg navbar-dark mb-4">
     <div class="container">
         <div class="navbar-nav ml-auto flex-row">
-            <a href="index.php" class="nav-item nav-link mr-3">Home</a>
             <a href="daftar_menu.php" class="nav-item nav-link mr-3">Menu</a>
             <a href="keranjang.php" class="nav-item nav-link mr-3">Keranjang</a>
-            <a href="logout_admin.php" class="nav-item nav-link">Logout</a>
         </div>
     </div>
 </nav>
@@ -97,9 +95,9 @@ $total = 0;
                                 <tr>
                                     <td>
                                         <?php if ($gambar): ?>
-                                            <img src="images/<?= htmlspecialchars($gambar) ?>" alt="<?= htmlspecialchars($nama) ?>" class="menu-img">
+                                            <img src="uploads/<?= htmlspecialchars($gambar) ?>" alt="<?= htmlspecialchars($nama) ?>" class="menu-img" style="width: 60px; height: 60px; object-fit: cover; border-radius: 5px;">
                                         <?php else: ?>
-                                            <div class="menu-img bg-light d-flex align-items-center justify-content-center">
+                                            <div class="menu-img bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
                                                 <i class="fas fa-image text-muted"></i>
                                             </div>
                                         <?php endif; ?>
@@ -138,16 +136,37 @@ $total = 0;
             </div>
             <div class="card-body">
                 <form action="proses_checkout.php" method="POST">
+                    <input type="hidden" name="total_harga" value="<?= $total ?>">
+
                     <div class="form-row">
                         <div class="form-group col-md-6">
                             <label for="nama_pelanggan"><i class="fas fa-user"></i> Nama Pelanggan</label>
-                            <input type="text" name="nama_pelanggan" class="form-control" id="nama_pelanggan" required>
+                            <input type="text" name="nama_pelanggan" class="form-control" id="nama_pelanggan" required placeholder="Masukkan nama Anda">
                         </div>
+                        
                         <div class="form-group col-md-6">
-                            <label for="nomor_meja"><i class="fas fa-chair"></i> Nomor Meja</label>
-                            <input type="text" name="nomor_meja" class="form-control" id="nomor_meja" required>
+                            <label for="nomor_meja"><i class="fas fa-chair"></i> Pilih Nomor Meja</label>
+                            <select name="nomor_meja" class="form-control" id="nomor_meja" required>
+                                <option value="">-- Pilih Meja Kosong --</option>
+                                <?php
+                                // Query mengambil hanya meja yang statusnya 'Kosong'
+                                $query_meja = "SELECT * FROM meja WHERE status_meja = 'Kosong' ORDER BY nomor_meja ASC";
+                                $result_meja = $conn->query($query_meja);
+
+                                if ($result_meja->num_rows > 0) {
+                                    while($row_meja = $result_meja->fetch_assoc()) {
+                                        // Value pakai ID_MEJA, Tampilan pakai NOMOR_MEJA
+                                        echo '<option value="' . $row_meja['id_meja'] . '">Meja ' . $row_meja['nomor_meja'] . '</option>';
+                                    }
+                                } else {
+                                    echo '<option value="" disabled>Maaf, semua meja penuh</option>';
+                                }
+                                ?>
+                            </select>
+                            <small class="text-muted">Hanya menampilkan meja yang tersedia.</small>
                         </div>
                     </div>
+
                     <div class="form-group">
                         <label for="pembayaran"><i class="fas fa-money-bill-wave"></i> Metode Pembayaran</label>
                         <select name="metode_pembayaran" class="form-control" id="pembayaran" onchange="toggleQRIS()" required>
@@ -155,13 +174,15 @@ $total = 0;
                             <option value="qris">QRIS</option>
                         </select>
                     </div>
+
                     <div class="form-group text-center mt-3" id="qrisContainer" style="display: none;">
-                        <p class="mb-3"><strong>Silakan scan QRIS berikut:</strong></p>
-                        <div class="border p-3 d-inline-block rounded">
-                            <img src="images/qris.png" alt="QRIS" width="200">
+                        <div class="border p-3 d-inline-block rounded bg-light">
+                            <h6 class="mb-2">Scan QRIS di bawah ini:</h6>
+                            <img src="uploads/qris.png" alt="QRIS Code" width="200">
+                            <p class="mt-2 text-muted small">Silakan upload bukti bayar (opsional jika sistem upload belum ada)</p>
                         </div>
-                        <p class="mt-3 text-muted">Scan QR code untuk melakukan pembayaran</p>
                     </div>
+
                     <div class="text-right mt-4">
                         <button type="submit" class="btn btn-success btn-lg px-4">
                             <i class="fas fa-check-circle"></i> Proses Pesanan
@@ -184,7 +205,6 @@ $total = 0;
         </div>
     <?php endif; ?>
 </div>
-
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>

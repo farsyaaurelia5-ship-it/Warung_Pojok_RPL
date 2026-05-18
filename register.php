@@ -45,10 +45,6 @@
             <input type="email" name="email" class="form-control" required>
             </div>
             <div class="mb-3">
-            <label class="form-label">Username</label>
-            <input type="text" name="username" class="form-control" required>
-            </div>
-            <div class="mb-3">
             <label class="form-label">Password</label>
             <input type="password" name="password" class="form-control" required minlength="6">
             </div>
@@ -59,7 +55,7 @@
             <button class="btn btn-primary w-100">
             <i class="fas fa-user-plus mr-2"></i> Daftar Sekarang
             </button>
-            <p class="text-center mt-3">Sudah punya akun? <a href="login.php" class="login-link">Login disini</a></p>
+            <p class="text-center mt-3">Sudah punya akun? <a href="login_owner.php" class="login-link">Login disini</a></p>
         </form>
         </div>
     </div>

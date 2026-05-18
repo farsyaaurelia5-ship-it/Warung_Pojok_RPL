@@ -7,16 +7,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_to_cart'])) {
     $menu_id = $_POST['menu_id'];
     $jumlah = $_POST['quantity'];
 
-    // [PERBAIKAN KEAMANAN] Menggunakan prepared statement untuk mencegah SQL Injection.
-    $stmt = $conn->prepare("SELECT * FROM menu WHERE id = ? AND tersedia = 1");
-    $stmt->bind_param("i", $menu_id); // 'i' berarti tipe datanya integer
+    // [PERBAIKAN 1] SQL Syntax diperbaiki: 'id_menu = ?' (bukan i) dan status = '1'
+    $stmt = $conn->prepare("SELECT * FROM menu WHERE id_menu = ? AND status = '1'");
+    $stmt->bind_param("i", $menu_id); 
     $stmt->execute();
     $result = $stmt->get_result();
 
     if ($result->num_rows > 0) {
         $menu = $result->fetch_assoc();
         $item = [
-            'menu_id'   => $menu['id'],
+            'menu_id'   => $menu['id_menu'],
             'nama_menu' => $menu['nama_menu'],
             'harga'     => $menu['harga'],
             'jumlah'    => $jumlah,
@@ -37,32 +37,35 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_to_cart'])) {
                 break;
             }
         }
-        unset($cart_item); // Hapus referensi setelah loop selesai
+        unset($cart_item);
 
         if (!$item_exists) {
             $_SESSION['keranjang'][] = $item;
         }
 
-        // [PERBAIKAN UX] Set pesan sukses di session untuk notifikasi.
         $_SESSION['pesan_sukses'] = "<strong>" . htmlspecialchars($item['nama_menu']) . "</strong> berhasil ditambahkan!";
     } else {
-        // [PERBAIKAN UX] Set pesan error jika item tidak ditemukan atau tidak tersedia.
         $_SESSION['pesan_error'] = "Menu tidak ditemukan atau sudah habis.";
     }
 
-    // Redirect kembali ke halaman menu untuk menampilkan notifikasi.
     header("Location: daftar_menu.php");
     exit;
 }
 
 
 // --- PROSES PENGAMBILAN DATA MENU UNTUK DITAMPILKAN ---
-$query = "SELECT * FROM menu WHERE tersedia = 1 ORDER BY kategori, nama_menu";
-$result = mysqli_query($conn, $query);
-
 $menusByCategory = [];
-while ($menu = mysqli_fetch_assoc($result)) {
-    $menusByCategory[$menu['kategori']][] = $menu;
+
+// [PERBAIKAN 2] Query disesuaikan dengan isi database (status = '1')
+$query = "SELECT * FROM menu WHERE status = '1' ORDER BY kategori, nama_menu";
+$result = $conn->query($query);
+
+if (!$result) {
+    $_SESSION['pesan_error'] = "Terjadi kesalahan saat mengambil data menu.";
+} else {
+    while ($menu = $result->fetch_assoc()) {
+        $menusByCategory[$menu['kategori']][] = $menu;
+    }
 }
 ?>
 
@@ -98,10 +101,8 @@ while ($menu = mysqli_fetch_assoc($result)) {
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="index.php"><i class="fas fa-home me-1"></i>Home</a></li>
                     <li class="nav-item"><a class="nav-link active" href="daftar_menu.php"><i class="fas fa-utensils me-1"></i>Menu</a></li>
                     <li class="nav-item"><a class="nav-link" href="keranjang.php"><i class="fas fa-shopping-cart me-1"></i>Keranjang</a></li>
-                    <li class="nav-item"><a class="nav-link" href="logout_admin.php"><i class="fas fa-sign-out-alt me-1"></i>Logout</a></li>
                 </ul>
             </div>
         </div>
@@ -111,10 +112,9 @@ while ($menu = mysqli_fetch_assoc($result)) {
         <h3 class="text-center font-weight-bold mb-4">DAFTAR MENU</h3>
 
         <?php
-        // [PERBAIKAN UX] Tampilkan notifikasi (flash message) dari session.
         if (isset($_SESSION['pesan_sukses'])) {
             echo '<div class="alert alert-success alert-dismissible fade show" role="alert">' . $_SESSION['pesan_sukses'] . '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
-            unset($_SESSION['pesan_sukses']); // Hapus pesan agar tidak tampil lagi
+            unset($_SESSION['pesan_sukses']);
         }
         if (isset($_SESSION['pesan_error'])) {
             echo '<div class="alert alert-danger alert-dismissible fade show" role="alert">' . $_SESSION['pesan_error'] . '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
@@ -142,10 +142,10 @@ while ($menu = mysqli_fetch_assoc($result)) {
                                     <?php endif; ?>
                                     
                                     <form method="POST" action="daftar_menu.php" class="mt-auto">
-                                        <input type="hidden" name="menu_id" value="<?= $menu['id'] ?>" />
+                                        <input type="hidden" name="menu_id" value="<?= $menu['id_menu'] ?>" />
                                         <div class="input-group mb-2">
-                                            <label class="input-group-text" for="jumlah_<?= $menu['id'] ?>">Jumlah</label>
-                                            <input type="number" name="quantity" id="jumlah_<?= $menu['id'] ?>" class="form-control" value="1" min="1" max="<?= $menu['stok'] > 0 ? $menu['stok'] : 1 ?>" />
+                                            <label class="input-group-text" for="jumlah_<?= $menu['id_menu'] ?>">Jumlah</label>
+                                            <input type="number" name="quantity" id="jumlah_<?= $menu['id_menu'] ?>" class="form-control" value="1" min="1" />
                                         </div>
                                         <button type="submit" name="add_to_cart" class="btn btn-success w-100">
                                             <i class="fas fa-cart-plus me-1"></i> Beli

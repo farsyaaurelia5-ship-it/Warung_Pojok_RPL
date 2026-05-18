@@ -1,0 +1,41 @@
+body {
+    background-color: #f4f7f6;
+    font-family: 'Poppins', sans-serif;
+}
+
+.payment-card {
+    max-width: 800px;
+    margin: 2rem auto;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    overflow: hidden; /* Ensures child elements conform to border-radius */
+}
+
+.payment-header {
+    background-color: #343a40;
+    color: white;
+    padding: 1.5rem;
+}
+
+.payment-header h2 {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 600;
+}
+
+.payment-header p {
+    margin: 0;
+    font-size: 1.25rem;
+    opacity: 0.8;
+}
+
+.total-display {
+    background-color: #ffc107;
+    color: #212529;
+    font-weight: bold;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+}
